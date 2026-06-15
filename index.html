@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyAI — AI Reading Comprehension Quiz Generator</title>
+    <meta name="description" content="Transform any text into adaptive, exam-style comprehension quizzes with instant feedback, analytics, and classroom features.">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+</head>
+
+<body>
+    <div class="app-container" id="app">
+        <!-- ============================================================
+             SCREEN 1: QUIZ GENERATOR LAB
+             ============================================================ -->
+        <div id="generator-view" class="view active">
+
+            <!-- Header / Navbar -->
+            <header class="app-header" id="main-header">
+                <span class="app-header__brand" id="brand-logo">StudyAI</span>
+
+                <nav class="app-header__nav" id="main-nav" aria-label="Main navigation">
+                    <button class="nav-link active" data-view="generator" id="nav-quiz-lab">Quiz Lab</button>
+                    <button class="nav-link" data-view="summarizer" id="nav-summarizer">Summarizer</button>
+                    <button class="nav-link" data-view="custom-test" id="nav-custom-test">Custom Test</button>
+                </nav>
+
+                <div class="app-header__actions">
+                    <div class="avatar" id="user-avatar" title="Student Sam">S</div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="page-content">
+
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1 class="page-title" id="page-title">Quiz Generator Lab</h1>
+                    <p class="page-subtitle">Turn your study materials into interactive and challenging quizzes in moments.</p>
+                </div>
+
+                <!-- Generator Grid: Input + Customize -->
+                <div class="generator-grid">
+
+                    <!-- Step 1: Provide Your Material -->
+                    <div class="paper-card" id="card-input">
+                        <div class="step-label">Step 1 · Provide Material</div>
+                        <div class="step-title">Paste your text or upload a PDF/URL</div>
+
+                        <div class="text-input-area">
+                            <textarea class="form-textarea" id="source-text"
+                                placeholder="Type or paste the source text, book chapters, or article text here…"
+                                aria-label="Source text for quiz generation"></textarea>
+
+                            <div class="input-actions">
+                                <span class="input-hint" id="char-count">0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Customize Your Quiz -->
+                    <div class="paper-card" id="card-customize">
+                        <div class="step-label">Step 2 · Customize Quiz</div>
+                        <div class="step-title">Configure your quiz settings</div>
+
+                        <div class="customize-panel">
+                            <div class="form-group">
+                                <label class="form-label" for="num-questions">Number of Questions</label>
+                                <select class="form-select" id="num-questions">
+                                    <option value="5">5 Questions</option>
+                                    <option value="10" selected>10 Questions</option>
+                                    <option value="15">15 Questions</option>
+                                    <option value="20">20 Questions</option>
+                                    <option value="25">25 Questions</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="complexity-level">Complexity Level</label>
+                                <select class="form-select" id="complexity-level">
+                                    <option value="elementary">Elementary</option>
+                                    <option value="middle" selected>Middle School</option>
+                                    <option value="high">High School</option>
+                                    <option value="test-prep">Test Prep / Advanced</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="focus-area">Focus Area</label>
+                                <select class="form-select" id="focus-area">
+                                    <option value="balanced" selected>Balanced</option>
+                                    <option value="main-idea">Main Idea</option>
+                                    <option value="inference">Inference</option>
+                                    <option value="vocabulary">Vocabulary in Context</option>
+                                    <option value="detail">Detail &amp; Evidence</option>
+                                    <option value="authors-purpose">Author's Purpose</option>
+                                    <option value="structure">Structure &amp; Organization</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Question Types</label>
+                                <div class="chip-group" id="question-types">
+                                    <button class="chip active" data-type="mcq">Multiple Choice</button>
+                                    <button class="chip" data-type="short-answer">Short Answer</button>
+                                    <button class="chip" data-type="evidence">Evidence-Based</button>
+                                </div>
+                            </div>
+
+                            <div class="generate-section">
+                                <button class="btn btn-primary-lg generate-btn" id="btn-generate">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                    </svg>
+                                    Generate My Quiz
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+        <!-- ============================================================
+             SCREEN: SUMMARIZER
+             ============================================================ -->
+        <div id="summarizer-view" class="view">
+
+            <!-- Header / Navbar (duplicated for view isolation) -->
+            <header class="app-header">
+                <span class="app-header__brand">StudyAI</span>
+                <nav class="app-header__nav" aria-label="Main navigation">
+                    <button class="nav-link" data-view="generator">Quiz Lab</button>
+                    <button class="nav-link active" data-view="summarizer">Summarizer</button>
+                    <button class="nav-link" data-view="custom-test">Custom Test</button>
+                </nav>
+                <div class="app-header__actions">
+                    <div class="avatar" title="Student Sam">S</div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">Passage Summarizer</h1>
+                    <p class="page-subtitle">Paste any text and get an AI-powered summary instantly — perfect for study notes and review.</p>
+                </div>
+
+                <div class="summarizer-grid">
+                    <!-- Input Card -->
+                    <div class="paper-card" id="card-summarizer-input">
+                        <div class="step-label">Step 1 · Provide Material</div>
+                        <div class="step-title">Paste the text you want summarized</div>
+
+                        <div class="text-input-area">
+                            <textarea class="form-textarea" id="summarizer-text"
+                                placeholder="Paste the passage, article, or chapter you want to summarize…"
+                                aria-label="Source text for summarization"></textarea>
+                            <div class="input-actions">
+                                <span class="input-hint" id="summarizer-char-count">0 characters</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Controls Card -->
+                    <div class="paper-card" id="card-summarizer-controls">
+                        <div class="step-label">Step 2 · Choose Length</div>
+                        <div class="step-title">How detailed should the summary be?</div>
+
+                        <div class="customize-panel">
+                            <div class="form-group">
+                                <label class="form-label">Summary Length</label>
+                                <div class="chip-group" id="summary-length-chips">
+                                    <button class="chip" data-length="brief">
+                                        <svg class="chip-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                        Brief
+                                    </button>
+                                    <button class="chip active" data-length="standard">
+                                        <svg class="chip-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="9" x2="19" y2="9"></line><line x1="5" y1="15" x2="19" y2="15"></line></svg>
+                                        Standard
+                                    </button>
+                                    <button class="chip" data-length="detailed">
+                                        <svg class="chip-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="7" x2="19" y2="7"></line><line x1="5" y1="12" x2="19" y2="12"></line><line x1="5" y1="17" x2="19" y2="17"></line></svg>
+                                        Detailed
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="generate-section">
+                                <button class="btn btn-primary-lg generate-btn" id="btn-summarize">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    </svg>
+                                    Summarize Passage
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Result Area -->
+                <div class="summary-result" id="summary-result" style="display: none;">
+                    <div class="summary-result__header">
+                        <div class="step-label">AI Summary</div>
+                        <button class="btn btn-ghost" id="btn-copy-summary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <div class="summary-result__content reading-pane" id="summary-text-output">
+                        <!-- Summary text populated by JS using textContent -->
+                    </div>
+                </div>
+
+                <!-- Summarizer Error -->
+                <div class="inline-error" id="summarizer-error" style="display: none;">
+                    <span class="inline-error__icon">⚠</span>
+                    <span class="inline-error__text" id="summarizer-error-text"></span>
+                </div>
+            </main>
+        </div>
+
+        <!-- ============================================================
+             SCREEN: CUSTOM TEST CREATOR
+             ============================================================ -->
+        <div id="custom-test-view" class="view">
+
+            <!-- Header / Navbar -->
+            <header class="app-header">
+                <span class="app-header__brand">StudyAI</span>
+                <nav class="app-header__nav" aria-label="Main navigation">
+                    <button class="nav-link" data-view="generator">Quiz Lab</button>
+                    <button class="nav-link" data-view="summarizer">Summarizer</button>
+                    <button class="nav-link active" data-view="custom-test">Custom Test</button>
+                </nav>
+                <div class="app-header__actions">
+                    <div class="avatar" title="Student Sam">S</div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">Custom Test Creator</h1>
+                    <p class="page-subtitle">Enter a topic and we'll research it from Wikipedia, then build a custom quiz based on your style preferences.</p>
+                </div>
+
+                <div class="custom-test-grid">
+                    <!-- Topic Input -->
+                    <div class="paper-card" id="card-custom-topic">
+                        <div class="step-label">Step 1 · Pick a Topic</div>
+                        <div class="step-title">What subject do you want a test on?</div>
+
+                        <div class="text-input-area">
+                            <input type="text" class="form-input" id="custom-test-topic"
+                                placeholder="e.g., The Solar System, Photosynthesis, Ancient Rome, World War II…"
+                                aria-label="Topic for custom quiz">
+                        </div>
+                    </div>
+
+                    <!-- Custom Prompt + Settings -->
+                    <div class="paper-card" id="card-custom-prompt">
+                        <div class="step-label">Step 2 · Your Instructions</div>
+                        <div class="step-title">Tell the AI how to create your test</div>
+
+                        <div class="customize-panel">
+                            <div class="form-group">
+                                <label class="form-label" for="custom-prompt-input">Your Custom Prompt</label>
+                                <textarea class="form-textarea custom-prompt-textarea" id="custom-prompt-input"
+                                    placeholder="e.g., &quot;Focus on vocabulary and dates. Make questions SAT-style with tricky answer choices. Include questions about the author's tone.&quot;"
+                                    aria-label="Custom instructions for quiz generation"
+                                    maxlength="500"></textarea>
+                                <div class="input-actions">
+                                    <span class="input-hint" id="custom-prompt-char-count">0 / 500 characters</span>
+                                </div>
+                            </div>
+
+                            <!-- Prompt Suggestions -->
+                            <div class="form-group">
+                                <label class="form-label">Quick Prompt Ideas</label>
+                                <div class="prompt-suggestions" id="prompt-suggestions">
+                                    <button class="chip prompt-chip" data-prompt="Focus on vocabulary in context. Ask what words mean based on how they are used in the passage.">Vocabulary Focus</button>
+                                    <button class="chip prompt-chip" data-prompt="Create SAT-style questions with tricky answer choices that require careful reading and elimination.">SAT Style</button>
+                                    <button class="chip prompt-chip" data-prompt="Ask questions about the author's tone, purpose, and rhetorical strategies used in the passage.">Author's Purpose</button>
+                                    <button class="chip prompt-chip" data-prompt="Focus on cause and effect relationships, sequence of events, and logical connections in the text.">Cause & Effect</button>
+                                    <button class="chip prompt-chip" data-prompt="Create questions that require making inferences and drawing conclusions not explicitly stated in the text.">Inference Heavy</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="custom-num-questions">Number of Questions</label>
+                                <select class="form-select" id="custom-num-questions">
+                                    <option value="5" selected>5 Questions (Recommended)</option>
+                                    <option value="10">10 Questions</option>
+                                    <option value="15">15 Questions</option>
+                                    <option value="20">20 Questions</option>
+                                    <option value="25">25 Questions</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="custom-complexity-level">Complexity Level</label>
+                                <select class="form-select" id="custom-complexity-level">
+                                    <option value="elementary">Elementary</option>
+                                    <option value="middle" selected>Middle School</option>
+                                    <option value="high">High School</option>
+                                    <option value="test-prep">Test Prep / Advanced</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="custom-focus-area">Focus Area</label>
+                                <select class="form-select" id="custom-focus-area">
+                                    <option value="balanced" selected>Balanced</option>
+                                    <option value="main-idea">Main Idea</option>
+                                    <option value="inference">Inference</option>
+                                    <option value="vocabulary">Vocabulary in Context</option>
+                                    <option value="detail">Detail &amp; Evidence</option>
+                                    <option value="authors-purpose">Author's Purpose</option>
+                                    <option value="structure">Structure &amp; Organization</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Question Types</label>
+                                <div class="chip-group" id="custom-question-types">
+                                    <button class="chip active" data-type="mcq">Multiple Choice</button>
+                                    <button class="chip" data-type="short-answer">Short Answer</button>
+                                    <button class="chip" data-type="evidence">Evidence-Based</button>
+                                </div>
+                            </div>
+
+                            <div class="generate-section">
+                                <button class="btn btn-primary-lg generate-btn" id="btn-custom-generate">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446A9 9 0 1 1 8.25 4.09"></path>
+                                        <path d="M16 3l-4 4 4 4"></path>
+                                    </svg>
+                                    Generate Custom Test
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Test Error -->
+                <div class="inline-error" id="custom-test-error" style="display: none;">
+                    <span class="inline-error__icon">⚠</span>
+                    <span class="inline-error__text" id="custom-test-error-text"></span>
+                </div>
+            </main>
+        </div>
+
+        <!-- ============================================================
+             SCREEN 2: QUIZ TAKING EXPERIENCE
+             ============================================================ -->
+        <div id="quiz-view" class="quiz-view">
+
+            <!-- Quiz Top Bar -->
+            <header class="quiz-topbar" id="quiz-topbar">
+                <div class="quiz-topbar__left">
+                    <span class="quiz-topbar__brand">StudyAI</span>
+                    <span class="quiz-topbar__divider"></span>
+                    <span class="quiz-topbar__title" id="quiz-title-bar">Quiz</span>
+                </div>
+                <div class="quiz-topbar__right">
+                    <button class="save-exit-btn" id="btn-save-exit" aria-label="Save and exit quiz">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Save &amp; Exit
+                    </button>
+                </div>
+            </header>
+
+            <!-- Progress Bar -->
+            <div class="quiz-progress" id="quiz-progress">
+                <span class="quiz-progress__label" id="progress-label">Question 1 of 10</span>
+                <div class="quiz-progress__bar-wrapper">
+                    <div class="quiz-progress__bar" id="progress-bar" style="width: 10%"></div>
+                </div>
+                <span class="quiz-progress__percent" id="progress-percent">0% Complete</span>
+                <div class="quiz-progress__timer">
+                    <svg class="timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span id="timer-display">00:00</span>
+                </div>
+            </div>
+
+            <!-- Quiz Main Content -->
+            <div class="quiz-main" id="quiz-main">
+
+                <!-- Reading Pane (Left) -->
+                <div class="reading-pane" id="reading-pane">
+                    <h2 class="reading-pane__title" id="passage-title">Reading Passage</h2>
+                    <div class="reading-pane__text" id="passage-text">
+                        <!-- Passage text will be populated by JS -->
+                    </div>
+                    <div class="reading-pane__footer">
+                        <svg class="reading-pane__footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Question Panel (Right) -->
+                <div class="question-panel" id="question-panel">
+                    <button class="question-panel__bookmark" id="btn-bookmark" aria-label="Bookmark this question">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </button>
+
+                    <h3 class="question-panel__text" id="question-text">Loading question…</h3>
+
+                    <div class="answer-options" id="answer-options">
+                        <!-- Answer options will be populated by JS -->
+                    </div>
+
+                    <div class="submit-section" id="submit-section">
+                        <button class="btn btn-primary-lg submit-btn" id="btn-submit-answer" disabled>
+                            Submit Answer
+                        </button>
+                    </div>
+
+                    <div id="feedback-container"></div>
+                </div>
+            </div>
+
+            <!-- Hint FAB -->
+            <button class="hint-fab" id="btn-hint" aria-label="Get a hint">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18h6"></path>
+                    <path d="M10 22h4"></path>
+                    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- ============================================================
+             GENERATING OVERLAY
+             ============================================================ -->
+        <div class="generating-overlay" id="generating-overlay">
+            <div class="generating-spinner"></div>
+            <div class="generating-text" id="generating-overlay-text">Crafting your quiz…</div>
+            <div class="generating-subtext" id="generating-overlay-subtext">Our AI is analyzing your passage and generating pedagogically-sound questions.</div>
+            <div class="generating-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             RESULTS OVERLAY
+             ============================================================ -->
+        <div class="results-overlay" id="results-overlay">
+            <div class="results-card">
+                <div class="results-card__emoji" id="results-emoji">🎉</div>
+                <h2 class="results-card__title" id="results-title">Quiz Complete!</h2>
+                <p class="results-card__subtitle" id="results-subtitle">Great effort! Here's how you did.</p>
+
+                <div class="results-stats">
+                    <div class="results-stat">
+                        <div class="results-stat__value" id="results-score">0%</div>
+                        <div class="results-stat__label">Score</div>
+                    </div>
+                    <div class="results-stat">
+                        <div class="results-stat__value" id="results-correct">0/0</div>
+                        <div class="results-stat__label">Correct</div>
+                    </div>
+                    <div class="results-stat">
+                        <div class="results-stat__value" id="results-time">0:00</div>
+                        <div class="results-stat__label">Time</div>
+                    </div>
+                </div>
+
+                <div class="results-actions">
+                    <button class="btn btn-primary" id="btn-review-quiz">Review Answers</button>
+                    <button class="btn btn-secondary" id="btn-back-to-lab">Back to Lab</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/static/script.js?v=2"></script>
+</body>
+
+</html>
