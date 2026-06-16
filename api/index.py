@@ -51,8 +51,10 @@ class QuizRequest(BaseModel):
 class Question(BaseModel):
     id: int
     question_text: str
-    options: List[str]
-    correct_option: int  # index of the correct option (0-based)
+    question_type: str = Field(default="mcq", pattern="^(mcq|true-false|short-answer|fill-blank|multiple-select|evidence)$")
+    options: List[str] = Field(default_factory=list)
+    correct_option: Optional[int] = None  # index for mcq/true-false/multiple-select
+    correct_answer: Optional[str] = None  # expected text for short-answer/fill-blank
     explanation: str
     evidence: Optional[str] = None
     category: Optional[str] = None
@@ -136,12 +138,23 @@ def build_prompt(request: QuizRequest) -> str:
 **PASSAGE:**
 {request.text}
 
+**MIX QUESTION TYPES:** Produce a variety of question types. Do NOT make all questions the same type. Distribute these types across the quiz:
+- **mcq** — standard multiple choice, 4 options, one correct (has "options" + "correct_option")
+- **true-false** — statement to judge true/false (has "options":["True","False"], "correct_option": 0 or 1)
+- **short-answer** — user writes a short response (omit "options", provide "correct_answer")
+- **fill-blank** — sentence with a missing word/phrase marked as _____ (omit "options", provide "correct_answer")
+- **multiple-select** — multiple correct answers from a list (has "options" + "correct_option" as any valid index)
+- **evidence** — user answers and provides supporting evidence from the passage (omit "options", provide "correct_answer", and include "evidence")
+
+**AVOID REPETITION:** Each question must feel distinct from the one before it. Vary the sentence structure, what aspect of the passage is tested, and the question type. Never repeat the same question format more than twice consecutively.
+
 **OUTPUT FORMAT:** Respond with a JSON object with this exact structure:
 {{
   "title": "A short descriptive title for this quiz based on the passage topic",
   "questions": [
     {{
       "id": 1,
+      "question_type": "mcq",
       "question_text": "The question text",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct_option": 0,
@@ -152,11 +165,14 @@ def build_prompt(request: QuizRequest) -> str:
   ]
 }}
 
-IMPORTANT:
-- correct_option is the 0-based index of the correct answer in the options array
-- Each question must have exactly 4 options
+TYPE-SPECIFIC RULES:
+- For mcq and multiple-select: include "options" (array) and "correct_option" (0-based index)
+- For true-false: include "options": ["True", "False"] and "correct_option" (0=True, 1=False)
+- For short-answer, fill-blank, and evidence: include "correct_answer" (string) and omit "options" (use empty array [])
+- The "question_type" field is REQUIRED for every question
 - Evidence must be an exact quote from the passage
 - Explanations should be educational and reference specific parts of the text
+- For longer quizzes (10+ questions) use all five types at least once
 - Respond with ONLY the JSON object, no markdown formatting or additional text"""
 
 
@@ -184,12 +200,15 @@ def parse_llm_response(response_text: str, request: QuizRequest) -> QuizResponse
     # Build questions
     questions = []
     for q in data.get("questions", []):
+        q_type = q.get("question_type", "mcq")
         questions.append(
             Question(
                 id=q["id"],
                 question_text=q["question_text"],
-                options=q["options"],
-                correct_option=q.get("correct_option", 0),
+                question_type=q_type,
+                options=q.get("options", []),
+                correct_option=q.get("correct_option"),
+                correct_answer=q.get("correct_answer"),
                 explanation=q.get("explanation", ""),
                 evidence=q.get("evidence", ""),
                 category=q.get("category", "detail"),
@@ -315,13 +334,23 @@ async def generate_custom_quiz(request: CustomQuizRequest):
 
     prompt = f"""You are a quiz generator. Create a quiz on "{request.topic}".
 
-Make {request.num_questions} questions about this topic, each with 4 answer options.
+Make {request.num_questions} questions about this topic.
 
 Style: {complexity_desc.get(request.complexity)}. Focus: {focus_desc.get(request.focus_area)}. Types: {type_desc}.
 Custom instructions: {sanitized_prompt}
 
+MIX QUESTION TYPES: Do NOT make all questions multiple choice. Distribute these types:
+- **mcq** — multiple choice, 4 options ("options" + "correct_option" index)
+- **true-false** — true/false statement ("options":["True","False"], "correct_option":0 or 1)
+- **short-answer** — user writes a response (provide "correct_answer" string, "options":[])
+- **fill-blank** — sentence with _____ blank (provide "correct_answer" string, "options":[])
+- **evidence** — user answers and cites passage evidence (provide "correct_answer" string, omit "options")
+
+Vary the type every 1-2 questions. Do not repeat the same question structure consecutively.
+Each question must test a different fact or concept about the topic.
+
 Output ONLY valid JSON (keep everything concise):
-{{"title":"quiz title","questions":[{{"id":1,"question_text":"question","options":["A","B","C","D"],"correct_option":0,"explanation":"brief explanation","category":"detail"}}]}}"""
+{{"title":"quiz title","questions":[{{"id":1,"question_type":"mcq","question_text":"question","options":["A","B","C","D"],"correct_option":0,"correct_answer":null,"explanation":"brief","category":"detail"}}]}}"""
 
     try:
         completion = client.chat.completions.create(
@@ -456,3 +485,112 @@ async def fetch_url(request: UrlRequest):
         raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error extracting text from URL: {str(e)}")
+
+
+# ── AI Answer Grading Endpoint ──────────────────────────────────
+class GradeRequest(BaseModel):
+    question_text: str = Field(..., min_length=1)
+    question_type: str = Field(default="short-answer")
+    student_answer: str = Field(..., min_length=1)
+    passage: str = Field(..., min_length=10)
+    correct_answer: Optional[str] = None
+    options: List[str] = Field(default_factory=list)
+    correct_option: Optional[int] = None
+    evidence: Optional[str] = None
+    student_evidence: Optional[str] = None
+
+
+class GradeResponse(BaseModel):
+    is_correct: bool
+    feedback: str
+    score: float = Field(..., ge=0.0, le=1.0)
+
+
+@app.post("/api/grade-answer", response_model=GradeResponse)
+async def grade_answer(request: GradeRequest):
+    """Use the LLM to evaluate a student's free-response answer."""
+
+    prompt = build_grade_prompt(request)
+
+    try:
+        completion = client.chat.completions.create(
+            model="meta/llama-3.3-70b-instruct",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a fair and constructive educational assessment grader. "
+                        "Evaluate the student's answer against the expected answer and passage. "
+                        "Grade leniently for partial understanding. Always respond with valid JSON only."
+                    ),
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            top_p=0.8,
+            max_tokens=512,
+            stream=False,
+        )
+
+        response_text = completion.choices[0].message.content.strip()
+
+        cleaned = response_text
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+            cleaned = re.sub(r"\s*```$", "", cleaned)
+
+        data = json.loads(cleaned)
+
+        return GradeResponse(
+            is_correct=data.get("is_correct", False),
+            feedback=data.get("feedback", "No feedback provided."),
+            score=min(1.0, max(0.0, float(data.get("score", 0.0)))),
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Grading failed: {str(e)}",
+        )
+
+
+def build_grade_prompt(request: GradeRequest) -> str:
+    """Construct the LLM prompt for grading a student answer."""
+
+    type_instructions = {
+        "short-answer": (
+            "Evaluate the student's short-answer response. "
+            "Consider whether they captured the key idea even if phrasing differs."
+        ),
+        "evidence": (
+            "Evaluate both the student's answer AND the evidence they cited from the passage. "
+            "The student's evidence must be a direct quote or close paraphrase from the passage that supports their answer."
+        ),
+        "fill-blank": (
+            "Evaluate the student's fill-in-the-blank response. "
+            "Accept close synonyms and minor spelling variations."
+        ),
+    }
+
+    type_instr = type_instructions.get(
+        request.question_type,
+        "Evaluate the student's response for correctness based on the passage.",
+    )
+
+    evidence_section = ""
+    if request.student_evidence and request.question_type == "evidence":
+        evidence_section = f"\nEvidence cited by student:\n{request.student_evidence}"
+
+    return f"""Evaluate this student's answer based on the passage.
+
+Passage excerpt:
+{request.passage[:1500]}
+
+Question: {request.question_text}
+Expected answer: {request.correct_answer or "See passage"}
+Student's answer: {request.student_answer}{evidence_section}
+
+{type_instr}
+
+Respond with JSON only:
+{{"is_correct": true/false, "feedback": "Constructive feedback (1-2 sentences)", "score": 0.0-1.0}}"""

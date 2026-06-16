@@ -1415,6 +1415,100 @@ img {
   line-height: 1.6;
 }
 
+.feedback-panel__correct-answer {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-container);
+  border-radius: var(--rounded);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Question Type Badge */
+.question-type-badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: var(--primary-fixed);
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--rounded-full);
+  margin-bottom: var(--stack-md);
+}
+
+/* Text input for short-answer / fill-blank */
+.answer-input-wrapper {
+  margin-bottom: 1rem;
+}
+
+.answer-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--outline-variant);
+  border-radius: var(--rounded);
+  background: var(--surface-container-lowest);
+  color: var(--slate-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.answer-input:focus {
+  border-color: var(--sage-primary);
+  box-shadow: 0 0 0 3px rgba(134, 167, 137, 0.12);
+}
+
+.answer-input:disabled {
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+  cursor: not-allowed;
+}
+
+.answer-expected {
+  margin-top: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--success-green);
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  background: rgba(95, 122, 97, 0.06);
+  border-radius: var(--rounded);
+}
+
+/* Evidence input label and textarea */
+.evidence-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-blue);
+  margin-top: var(--stack-md);
+  margin-bottom: var(--stack-sm);
+}
+
+.answer-input--evidence {
+  border-color: var(--ink-blue);
+  font-size: 14px;
+}
+
+.answer-input--evidence:focus {
+  border-color: var(--ink-blue);
+  box-shadow: 0 0 0 3px rgba(74, 98, 116, 0.12);
+}
+
+/* Multiple-select option styling */
+.answer-option--multi.selected .answer-checkbox {
+  border-color: var(--ink-blue);
+  background: var(--ink-blue);
+}
+
 /* Hint Lightbulb Button (FAB) */
 .hint-fab {
   position: fixed;
