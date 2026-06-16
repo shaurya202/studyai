@@ -687,6 +687,9 @@
     const question = quiz.questions[qIdx];
     const total = quiz.questions.length;
 
+    // Always enable submit button; handleSubmitAnswer validates contents
+    btnSubmitAnswer.disabled = false;
+
     // Update progress
     const answeredCount = Object.keys(state.isSubmitted).length;
     progressLabel.textContent = `Question ${qIdx + 1} of ${total}`;
@@ -747,9 +750,9 @@
           } else {
             state.answers[qIdx] = input.value.trim();
           }
-          btnSubmitAnswer.disabled = !getTextAnswer(qIdx);
+          btnSubmitAnswer.disabled = false;
         });
-        btnSubmitAnswer.disabled = !getTextAnswer(qIdx);
+        btnSubmitAnswer.disabled = false;
       } else {
         input.disabled = true;
       }
@@ -963,12 +966,6 @@
 
       btnSubmitAnswer.disabled = false;
     }
-  }
-
-  function getTextAnswer(qIdx) {
-    const a = state.answers[qIdx];
-    if (a && typeof a === 'object') return (a.answer || '').trim();
-    return (a || '').trim();
   }
 
   function handleSubmitAnswer() {
