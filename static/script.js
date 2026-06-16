@@ -747,10 +747,6 @@
           } else {
             state.answers[qIdx] = input.value.trim();
           }
-          const cur = qType === 'evidence'
-            ? state.answers[qIdx]?.answer?.trim()
-            : state.answers[qIdx];
-          btnSubmitAnswer.disabled = !cur;
         });
       } else {
         input.disabled = true;
@@ -811,14 +807,6 @@
       }
 
       answerOptions.appendChild(inputWrapper);
-
-      // Update submit button disable state for text inputs
-      if (!state.isSubmitted[qIdx]) {
-        const cur = qType === 'evidence'
-          ? (state.answers[qIdx]?.answer?.trim())
-          : state.answers[qIdx];
-        btnSubmitAnswer.disabled = !cur;
-      }
     } else {
       // Option-based: mcq, true-false, multiple-select
       const isMulti = qType === 'multiple-select';
