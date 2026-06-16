@@ -129,6 +129,25 @@ def build_prompt(request: QuizRequest) -> str:
 
     type_desc = ", ".join(request.question_types) if request.question_types else "multiple choice"
 
+    type_details = {
+        "mcq": '- **mcq** — standard multiple choice, 4 options, one correct (has "options" + "correct_option")',
+        "true-false": '- **true-false** — statement to judge true/false (has "options":["True","False"], "correct_option": 0 or 1)',
+        "short-answer": '- **short-answer** — user writes a short response (omit "options", provide "correct_answer")',
+        "fill-blank": '- **fill-blank** — sentence with a missing word/phrase marked as _____ (omit "options", provide "correct_answer")',
+        "multiple-select": '- **multiple-select** — multiple correct answers from a list (has "options" + "correct_option" as any valid index)',
+        "evidence": '- **evidence** — user answers and provides supporting evidence from the passage (omit "options", provide "correct_answer", and include "evidence")',
+    }
+
+    selected_types = [t for t in request.question_types if t in type_details]
+    type_instructions_lines = [type_details[t] for t in selected_types]
+
+    if len(selected_types) == 1:
+        mix_instruction = "ALL questions MUST be exactly this type. Do not use any other question type."
+    else:
+        mix_instruction = "Distribute these types across the quiz evenly. Vary the type every 1-2 questions. Do not repeat the same type more than twice consecutively."
+
+    type_instructions = "\n".join(type_instructions_lines)
+
     return f"""Based on the following passage, generate exactly {request.num_questions} reading comprehension questions.
 
 **Complexity:** {complexity_desc.get(request.complexity, complexity_desc["middle"])}
@@ -138,15 +157,10 @@ def build_prompt(request: QuizRequest) -> str:
 **PASSAGE:**
 {request.text}
 
-**MIX QUESTION TYPES:** Produce a variety of question types. Do NOT make all questions the same type. Distribute these types across the quiz:
-- **mcq** — standard multiple choice, 4 options, one correct (has "options" + "correct_option")
-- **true-false** — statement to judge true/false (has "options":["True","False"], "correct_option": 0 or 1)
-- **short-answer** — user writes a short response (omit "options", provide "correct_answer")
-- **fill-blank** — sentence with a missing word/phrase marked as _____ (omit "options", provide "correct_answer")
-- **multiple-select** — multiple correct answers from a list (has "options" + "correct_option" as any valid index)
-- **evidence** — user answers and provides supporting evidence from the passage (omit "options", provide "correct_answer", and include "evidence")
+**QUESTION TYPE RULES:**
+{type_instructions}
 
-**AVOID REPETITION:** Each question must feel distinct from the one before it. Vary the sentence structure, what aspect of the passage is tested, and the question type. Never repeat the same question format more than twice consecutively.
+{mix_instruction}
 
 **OUTPUT FORMAT:** Respond with a JSON object with this exact structure:
 {{
@@ -172,7 +186,6 @@ TYPE-SPECIFIC RULES:
 - The "question_type" field is REQUIRED for every question
 - Evidence must be an exact quote from the passage
 - Explanations should be educational and reference specific parts of the text
-- For longer quizzes (10+ questions) use all five types at least once
 - Respond with ONLY the JSON object, no markdown formatting or additional text"""
 
 
@@ -198,9 +211,12 @@ def parse_llm_response(response_text: str, request: QuizRequest) -> QuizResponse
     passage_html = "".join(f"<p>{p.strip()}</p>" for p in paragraphs if p.strip())
 
     # Build questions
+    allowed_types = set(request.question_types) if request.question_types else {"mcq"}
     questions = []
     for q in data.get("questions", []):
         q_type = q.get("question_type", "mcq")
+        if q_type not in allowed_types:
+            continue
         questions.append(
             Question(
                 id=q["id"],
@@ -332,6 +348,25 @@ async def generate_custom_quiz(request: CustomQuizRequest):
 
     type_desc = ", ".join(request.question_types)
 
+    custom_type_details = {
+        "mcq": '- **mcq** — multiple choice, 4 options ("options" + "correct_option" index)',
+        "true-false": '- **true-false** — true/false statement ("options":["True","False"], "correct_option":0 or 1)',
+        "short-answer": '- **short-answer** — user writes a response (provide "correct_answer" string, "options":[])',
+        "fill-blank": '- **fill-blank** — sentence with _____ blank (provide "correct_answer" string, "options":[])',
+        "multiple-select": '- **multiple-select** — multiple correct answers from a list ("options" + "correct_option" as any valid index)',
+        "evidence": '- **evidence** — user answers and cites passage evidence (provide "correct_answer" string, "options":[])',
+    }
+
+    selected_types = [t for t in request.question_types if t in custom_type_details]
+    custom_type_lines = [custom_type_details[t] for t in selected_types]
+
+    if len(selected_types) == 1:
+        mix_instruction = "ALL questions MUST be exactly this type. Do not use any other question type."
+    else:
+        mix_instruction = "Distribute these types evenly across the quiz. Vary the type every 1-2 questions. Do not repeat the same type consecutively."
+
+    custom_type_instructions = "\n".join(custom_type_lines)
+
     prompt = f"""You are a quiz generator. Create a quiz on "{request.topic}".
 
 Make {request.num_questions} questions about this topic.
@@ -339,14 +374,11 @@ Make {request.num_questions} questions about this topic.
 Style: {complexity_desc.get(request.complexity)}. Focus: {focus_desc.get(request.focus_area)}. Types: {type_desc}.
 Custom instructions: {sanitized_prompt}
 
-MIX QUESTION TYPES: Do NOT make all questions multiple choice. Distribute these types:
-- **mcq** — multiple choice, 4 options ("options" + "correct_option" index)
-- **true-false** — true/false statement ("options":["True","False"], "correct_option":0 or 1)
-- **short-answer** — user writes a response (provide "correct_answer" string, "options":[])
-- **fill-blank** — sentence with _____ blank (provide "correct_answer" string, "options":[])
-- **evidence** — user answers and cites passage evidence (provide "correct_answer" string, omit "options")
+QUESTION TYPE RULES:
+{custom_type_instructions}
 
-Vary the type every 1-2 questions. Do not repeat the same question structure consecutively.
+{mix_instruction}
+
 Each question must test a different fact or concept about the topic.
 
 Output ONLY valid JSON (keep everything concise):
