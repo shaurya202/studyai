@@ -969,42 +969,58 @@
   }
 
   function handleSubmitAnswer() {
-    const qIdx = state.currentQuestion;
-    const answer = state.answers[qIdx];
-    if (answer === undefined || answer === '' || state.isSubmitted[qIdx]) return;
+    try {
+      const qIdx = state.currentQuestion;
+      let answer = state.answers[qIdx];
 
-    const question = state.quizData.questions[qIdx];
-    const passage = state.quizData.passage_raw || '';
-    const qType = question.question_type || 'mcq';
-    state.isSubmitted[qIdx] = true;
-
-    // For free-response types, grade via AI
-    if (qType === 'short-answer' || qType === 'evidence' || qType === 'fill-blank') {
-      const answerText = qType === 'evidence' && typeof answer === 'object'
-        ? (answer.answer || '') : (typeof answer === 'string' ? answer : '');
-      const evidenceText = qType === 'evidence' && typeof answer === 'object'
-        ? (answer.evidence || '') : (state.evidenceAnswers[qIdx] || '');
-
-      if (qType === 'evidence') {
-        state.evidenceAnswers[qIdx] = evidenceText;
+      // If answer is empty, try reading directly from the visible textarea
+      if (!answer || answer === '') {
+        const textarea = document.querySelector('#answer-options textarea');
+        if (textarea) {
+          const val = textarea.value.trim();
+          if (val) {
+            answer = val;
+            state.answers[qIdx] = val;
+          }
+        }
       }
 
-      // Call grading API (async, then re-render)
-      gradeAnswer(question, answerText, evidenceText, passage, qIdx);
-      return;
-    }
+      if (answer === undefined || answer === '' || state.isSubmitted[qIdx]) return;
 
-    // Client-side grading for MCQ / true-false / multiple-select
-    let isCorrect = false;
-    if (qType === 'multiple-select') {
-      const selected = Array.isArray(answer) ? answer : [];
-      isCorrect = selected.includes(question.correct_option);
-    } else {
-      isCorrect = answer === question.correct_option;
-    }
+      const question = state.quizData.questions[qIdx];
+      const passage = state.quizData.passage_raw || '';
+      const qType = question.question_type || 'mcq';
+      state.isSubmitted[qIdx] = true;
 
-    if (isCorrect) state.correctCount++;
-    renderQuestion();
+      // For free-response types, grade via AI
+      if (qType === 'short-answer' || qType === 'evidence' || qType === 'fill-blank') {
+        const answerText = qType === 'evidence' && typeof answer === 'object'
+          ? (answer.answer || '') : (typeof answer === 'string' ? answer : '');
+        const evidenceText = qType === 'evidence' && typeof answer === 'object'
+          ? (answer.evidence || '') : (state.evidenceAnswers[qIdx] || '');
+
+        if (qType === 'evidence') {
+          state.evidenceAnswers[qIdx] = evidenceText;
+        }
+
+        gradeAnswer(question, answerText, evidenceText, passage, qIdx);
+        return;
+      }
+
+      // Client-side grading for MCQ / true-false / multiple-select
+      let isCorrect = false;
+      if (qType === 'multiple-select') {
+        const selected = Array.isArray(answer) ? answer : [];
+        isCorrect = selected.includes(question.correct_option);
+      } else {
+        isCorrect = answer === question.correct_option;
+      }
+
+      if (isCorrect) state.correctCount++;
+      renderQuestion();
+    } catch (err) {
+      console.error('handleSubmitAnswer error:', err);
+    }
   }
 
   async function gradeAnswer(question, answerText, evidenceText, passage, qIdx) {
