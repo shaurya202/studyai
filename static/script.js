@@ -747,7 +747,9 @@
           } else {
             state.answers[qIdx] = input.value.trim();
           }
+          btnSubmitAnswer.disabled = !getTextAnswer(qIdx);
         });
+        btnSubmitAnswer.disabled = !getTextAnswer(qIdx);
       } else {
         input.disabled = true;
       }
@@ -961,6 +963,12 @@
 
       btnSubmitAnswer.disabled = false;
     }
+  }
+
+  function getTextAnswer(qIdx) {
+    const a = state.answers[qIdx];
+    if (a && typeof a === 'object') return (a.answer || '').trim();
+    return (a || '').trim();
   }
 
   function handleSubmitAnswer() {
